@@ -3,8 +3,8 @@ services:
   web:
     image: ${WEB_IMAGE:-6dainas-web:dev}
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../../
+      dockerfile: apps/web/Dockerfile
     container_name: 6dainas-web
     restart: unless-stopped
     ports:

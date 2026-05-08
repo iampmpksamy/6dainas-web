@@ -1,43 +1,43 @@
 # ── Stage 1: Install dependencies ─────────────────────────────────────────────
-FROM node:20-alpine AS deps
-WORKDIR /app
+# Use Debian-based node (glibc) so npm ci installs the correct SWC gnu binary.
+# The lockfile was generated on a glibc host; musl binary is not in it.
+FROM node:20 AS deps
+WORKDIR /repo
 
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine
-RUN apk add --no-cache libc6-compat
-
+# Copy workspace root + app manifests for deterministic layer caching
 COPY package.json package-lock.json ./
+COPY apps/web/package.json apps/web/
 RUN npm ci
 
 # ── Stage 2: Build Next.js (standalone output) ────────────────────────────────
-FROM node:20-alpine AS builder
-WORKDIR /app
+FROM node:20 AS builder
+WORKDIR /repo
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY --from=deps /repo/node_modules    ./node_modules
+COPY package.json                       ./
+COPY apps/web                           apps/web
 
-# next build reads NEXT_PUBLIC_* at build time — runtime secrets stay in env
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-RUN npm run build
+RUN npm run build --workspace=@6dainas/web
 
 # ── Stage 3: Lean production runtime ──────────────────────────────────────────
+# Standalone output has no native addons — safe to run on Alpine.
 FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-# Port the server listens on (can be overridden via docker-compose environment)
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Non-root user — same pattern as Maalig
 RUN addgroup -g 1001 -S nodejs && adduser -S -u 1001 -G nodejs nextjs
 
-# standalone output + static assets + public dir
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static    ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public          ./public
+# Copy only the standalone bundle + static assets — no node_modules needed
+COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/.next/static      ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/public            ./public
 
 USER nextjs
 

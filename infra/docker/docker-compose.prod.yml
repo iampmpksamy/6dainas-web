@@ -4,7 +4,7 @@ services:
     image: ${WEB_IMAGE}
     container_name: 6dainas-web
     restart: always
-    env_file: .env.local
+    env_file: ../../.env.local
     environment:
       NODE_ENV: production
       PORT: 3000
