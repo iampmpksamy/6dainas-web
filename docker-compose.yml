@@ -1,0 +1,32 @@
+services:
+
+  web:
+    image: ${WEB_IMAGE:-6dainas-web:dev}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 6dainas-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      # Admin auth
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me}
+      ADMIN_SECRET: ${ADMIN_SECRET:-change-me-min-32-chars-secret-key}
+      # Analytics backend
+      ANALYTICS_URL: ${ANALYTICS_URL:-https://telemetry.6dainas.cloud}
+      ANALYTICS_KEY: ${ANALYTICS_KEY:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 2>/dev/null | grep -q '<' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - 6dainas-web
+
+networks:
+  6dainas-web:
+    driver: bridge
