@@ -1,0 +1,38 @@
+[Unit]
+Description=6DAiNAS Telemetry Service (telemetry.6dainas.cloud)
+Documentation=https://github.com/iampmpksamy/6dainas-web
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=6dainas-telemetry
+Group=6dainas-telemetry
+StateDirectory=6dainas-telemetry
+WorkingDirectory=/var/lib/6dainas-telemetry
+
+ExecStart=/usr/local/bin/6dainas-telemetry
+
+# Database and network config
+Environment=TELEMETRY_DB=/var/lib/6dainas-telemetry/telemetry.db
+Environment=TELEMETRY_PORT=7000
+Environment=TELEMETRY_CORS_ORIGINS=https://6dainas.cloud
+
+# Set TELEMETRY_KEY to a strong random secret.
+# Generate: openssl rand -hex 32
+# Environment=TELEMETRY_KEY=
+
+Restart=on-failure
+RestartSec=5s
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/6dainas-telemetry
+MemoryMax=256M
+CPUQuota=30%
+
+[Install]
+WantedBy=multi-user.target

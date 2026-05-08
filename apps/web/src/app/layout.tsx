@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import './globals.css'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import TelemetryScript from '@/components/TelemetryScript'
 
 export const metadata: Metadata = {
   title: '6DAiNAS-OS — India\'s 1st Open Source AI NAS OS',
@@ -22,6 +24,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="font-sans text-gray-100 antialiased">
+        <Suspense fallback={null}>
+          <TelemetryScript />
+        </Suspense>
         <Navbar />
         <main className="pt-16">
           {children}

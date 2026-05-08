@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-interface Registration {
+export interface Registration {
   id:           number
   device_id:    string
   name:         string
