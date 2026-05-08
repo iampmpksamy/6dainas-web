@@ -1,0 +1,74 @@
+# =============================================================================
+#  6dainas.cloud — Caddy Site Blocks
+#  Brand & marketing website for 6DAiNAS-OS
+# =============================================================================
+#
+#  This file contains ONLY the site blocks for the 6dainas.cloud domain.
+#  Copy (or include) these blocks into your HomeLab's main Caddyfile.
+#
+#  The 6DAiNAS-OS product has its own separate Caddy config.
+#  These two configs are independent — do NOT merge the files.
+#
+#  Prerequisites on the HomeLab server:
+#    1. Docker container running:
+#         WEB_IMAGE=ghcr.io/iampmpksamy/6dainas-web:main \
+#           docker compose -f infra/docker/docker-compose.prod.yml up -d
+#       Container binds to 127.0.0.1:3000 (localhost only).
+#
+#    2. DNS: A records for 6dainas.cloud + www.6dainas.cloud → your server IP
+#       Both proxied through Cloudflare (orange cloud, Full strict SSL).
+#
+#    3. Let's Encrypt email configured in the global Caddy options block
+#       (already set in the HomeLab's main Caddyfile).
+# =============================================================================
+
+# ── www → apex redirect ───────────────────────────────────────────────────────
+www.6dainas.cloud {
+    redir https://6dainas.cloud{uri} permanent
+}
+
+# ── Main brand site ───────────────────────────────────────────────────────────
+6dainas.cloud {
+
+    reverse_proxy localhost:3000 {
+        transport http {
+            dial_timeout            5s
+            response_header_timeout 30s
+            keepalive               30s
+        }
+        header_up X-Real-IP         {remote_host}
+        header_up X-Forwarded-For   {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Security headers — tuned for Next.js + Google Fonts + telemetry beacon
+    header {
+        X-Frame-Options         "SAMEORIGIN"
+        X-Content-Type-Options  "nosniff"
+        Referrer-Policy         "strict-origin-when-cross-origin"
+        Permissions-Policy      "geolocation=(), microphone=(), camera=()"
+        # Allows: Next.js inline scripts, Google Fonts, telemetry.6dainas.cloud beacon
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://telemetry.6dainas.cloud; frame-ancestors 'none'"
+        -Server
+        -X-Powered-By
+    }
+
+    # HSTS with preload — only when TLS is active
+    @tls_active `{tls_version} != ""`
+    header @tls_active Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+    encode {
+        zstd
+        gzip 6
+        minimum_length 1024
+    }
+
+    log {
+        output file /var/log/6dainas/web-access.log {
+            roll_size    50MiB
+            roll_keep    14
+            roll_keep_for 336h
+        }
+        format json
+    }
+}

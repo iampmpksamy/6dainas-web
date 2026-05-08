@@ -1,15 +1,15 @@
 services:
 
   web:
-    image: ${WEB_IMAGE:-ghcr.io/iampmpksamy/6dainas-web:main}
+    image: ${WEB_IMAGE}
     container_name: 6dainas-web
     restart: always
     env_file: ../../.env.local
     environment:
       NODE_ENV: production
       PORT: 3000
-    # Bind only to localhost — Caddy (running as a system service) proxies to this port.
-    # Never expose directly to 0.0.0.0 in production.
+    # Bind to localhost only — Caddy on the HomeLab reverse-proxies 6dainas.cloud here.
+    # 127.0.0.1 binding means the port is NOT reachable from the internet directly.
     ports:
       - "127.0.0.1:3000:3000"
     healthcheck:
